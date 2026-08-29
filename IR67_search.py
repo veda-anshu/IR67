@@ -27,9 +27,9 @@ Usage:
 import argparse
 import sys
 
-import config
-from preprocess import apply_pipeline, load_stopwords
-from porter_stemmer import PorterStemmer
+import IR67_config as config
+from IR67_preprocess import apply_pipeline, load_stopwords
+from IR67_porter_stemmer import PorterStemmer
 
 # Index loading
 def load_index(path):

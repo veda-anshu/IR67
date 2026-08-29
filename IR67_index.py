@@ -16,7 +16,7 @@ Reads config.PROCESSED_PATH, writes config.INDEX_PATH.
 import sys
 from collections import defaultdict
 
-import config
+import IR67_config as config
 
 
 def parse_processed_file(path):

@@ -1,10 +1,10 @@
 # Cranfield Boolean IR System — Writeup
 
 Programming Assignment I: Preprocessing, Indexing, Boolean Search
-Group: **IR67** *(rename in `config.py` — every output filename is auto-prefixed from there)*
+Group: **IR67** *(rename in `IR67_config.py` — every output filename is auto-prefixed from there)*
 
 Language: **Python 3** (standard library only — no external packages required
-to run; the Porter stemmer is vendored in `porter_stemmer.py` so there is
+to run; the Porter stemmer is vendored in `IR67_porter_stemmer.py` so there is
 nothing to `pip install`).
 
 ---
@@ -13,34 +13,34 @@ nothing to `pip install`).
 
 | File | Purpose |
 |---|---|
-| `config.py` | Group name + shared input/output paths. Edit `GROUP_NAME` here. |
-| `porter_stemmer.py` | Standalone Porter (1980) stemming algorithm implementation. |
-| `preprocess.py` | Tokenization, normalization, stopword removal, stemming; writes `GROUP_processed.all`. |
-| `index.py` | Builds the inverted index; writes `GROUP_cran.index`. |
-| `search.py` | Two-term Boolean AND/OR search over the index. |
-| `queries.txt` | Sample demo queries (batch-mode input for `search.py`). |
+| `IR67_config.py` | Group name + shared input/output paths. Edit `GROUP_NAME` here. |
+| `IR67_porter_stemmer.py` | Standalone Porter (1980) stemming algorithm implementation. |
+| `IR67_preprocess.py` | Tokenization, normalization, stopword removal, stemming; writes `GROUP_processed.all`. |
+| `IR67_index.py` | Builds the inverted index; writes `GROUP_cran.index`. |
+| `IR67_search.py` | Two-term Boolean AND/OR search over the index. |
+| `queries.txt` | Sample demo queries (batch-mode input for `IR67_search.py`). |
 | `data/cran.all`, `data/stopwords.txt` | Input corpus and stopword list (as supplied). |
 | `output/` | All generated files land here. |
 
 ## 2. How to run
 
 ```bash
-# 1) edit config.py: set GROUP_NAME = "<your actual group name>"
+# 1) edit IR67_config.py: set GROUP_NAME = "<your actual group name>"
 
 # 2) preprocessing -> output/GROUP_processed.all
-python3 preprocess.py
+python3 IR67_preprocess.py
 
 # 3) indexing -> output/GROUP_cran.index
-python3 index.py
+python3 IR67_index.py
 
 # 4) Boolean search
-python3 search.py "aerodynamic AND experimental"          # single query
-python3 search.py "flow OR pressure" -o results.txt        # custom output file
-python3 search.py --batch queries.txt -o output/GROUP_results.txt   # batch mode
+python3 IR67_search.py "aerodynamic AND experimental"          # single query
+python3 IR67_search.py "flow OR pressure" -o results.txt        # custom output file
+python3 IR67_search.py --batch queries.txt -o output/GROUP_results.txt   # batch mode
 ```
 
 Each script only depends on the previous stage's output file plus
-`config.py` — there is no shared server/process, so stages can be re-run
+`IR67_config.py` — there is no shared server/process, so stages can be re-run
 independently at any time.
 
 ## 3. Preprocessing methodology
@@ -56,7 +56,7 @@ concatenated into one string per document before preprocessing.
 
 ### 3.2 The four required functions
 
-Implemented as four separate functions in `preprocess.py`, run in this
+Implemented as four separate functions in `IR67_preprocess.py`, run in this
 order by the shared `apply_pipeline()` entry point:
 
 1. **`tokenize(text)`** — regex `[A-Za-z0-9]+`: a token is a maximal run of
@@ -67,19 +67,19 @@ order by the shared `apply_pipeline()` entry point:
    accents/diacritics (Unicode NFKD, drop combining marks), dropping any
    token that becomes empty.
 3. **`remove_stopwords(tokens, stopset)`** — drops any token present in `stopwords.txt`.
-4. **`stem(tokens, stemmer)`** — Porter stemming via `porter_stemmer.py`.
+4. **`stem(tokens, stemmer)`** — Porter stemming via `IR67_porter_stemmer.py`.
 
 **Pipeline order:** `tokenize → normalize → remove_stopwords → stem`.
 Stopword removal is done *before* stemming purely for efficiency — running
 the stemmer on ~40% of raw tokens that are common function words
 (`the`, `of`, `and`, ...) which will be discarded anyway is wasted work.
 This does not change correctness: the same `apply_pipeline()` function is
-used for both documents (in `preprocess.py`) and queries (in `search.py`),
+used for both documents (in `IR67_preprocess.py`) and queries (in `IR67_search.py`),
 so document terms and query terms are guaranteed to be stemmed/normalized
 identically regardless of ordering choice.
 
 ### 3.3 Porter stemmer
-`porter_stemmer.py` implements Porter's 1980 algorithm ("An algorithm for
+`IR67_porter_stemmer.py` implements Porter's 1980 algorithm ("An algorithm for
 suffix stripping", *Program* 14.3: 130–137), run in `ORIGINAL_ALGORITHM`
 mode (faithful to the original paper, as opposed to later community
 extensions). It was validated against 75 canonical input/output pairs from
@@ -100,7 +100,7 @@ experiment investig aerodynam wing slipstream ...
 ...
 ```
 
-## 4. Indexing methodology (`index.py`)
+## 4. Indexing methodology (`IR67_index.py`)
 
 `build_index()` does a single linear pass over the processed file,
 accumulating `term -> set(docid)` (a `set` per term so repeated
@@ -116,7 +116,7 @@ experimental 1,7,9,21,27
 ...
 ```
 
-## 5. Boolean search methodology (`search.py`)
+## 5. Boolean search methodology (`IR67_search.py`)
 
 * The raw query (`"term1 AND term2"` / `"term1 OR term2"`, connective
   case-insensitive) is parsed, and **each query term is run through the

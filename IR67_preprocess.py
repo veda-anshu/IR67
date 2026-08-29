@@ -24,8 +24,8 @@ import re
 import sys
 import unicodedata
 
-from porter_stemmer import PorterStemmer
-import config
+from IR67_porter_stemmer import PorterStemmer
+import IR67_config as config
 
 # Step 1: Tokenization
 
