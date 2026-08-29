@@ -31,10 +31,7 @@ import config
 from preprocess import apply_pipeline, load_stopwords
 from porter_stemmer import PorterStemmer
 
-
-# ---------------------------------------------------------------------
 # Index loading
-# ---------------------------------------------------------------------
 def load_index(path):
     """
     Load a <GROUP>_cran.index file into memory.
@@ -55,9 +52,7 @@ def load_index(path):
     return index, vocab_size, max_docid
 
 
-# ---------------------------------------------------------------------
 # Merge-based set operations on sorted postings lists -- O(len(p1)+len(p2))
-# ---------------------------------------------------------------------
 def merge_and(p1, p2):
     """Sorted-list intersection via linear merge (two-pointer walk)."""
     result = []
@@ -93,13 +88,9 @@ def merge_or(p1, p2):
     result.extend(p2[j:])
     return result
 
-
-# ---------------------------------------------------------------------
 # Query parsing + execution
-# ---------------------------------------------------------------------
 class QueryError(ValueError):
     pass
-
 
 def parse_query(raw_query):
     """
@@ -127,6 +118,13 @@ def run_query(raw_query, index, stopset, stemmer):
 
     t1_list = apply_pipeline(term1_raw, stopset, stemmer)
     t2_list = apply_pipeline(term2_raw, stopset, stemmer)
+
+    if len(t1_list) > 1 or len(t2_list) > 1:
+        raise QueryError(
+            "A single query term tokenized into multiple words (e.g. it contained a hyphen). "
+            "Please use single words."
+        )
+
     t1 = t1_list[0] if t1_list else ""
     t2 = t2_list[0] if t2_list else ""
 
@@ -136,10 +134,8 @@ def run_query(raw_query, index, stopset, stemmer):
     docids = merge_and(p1, p2) if conn == "AND" else merge_or(p1, p2)
     return t1, conn, t2, docids
 
-
-# ---------------------------------------------------------------------
 # Main / CLI
-# ---------------------------------------------------------------------
+
 def format_result_line(raw_query, t1, conn, t2, docids):
     ids_str = ",".join(str(d) for d in docids) if docids else "(none)"
     return (

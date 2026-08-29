@@ -68,7 +68,6 @@ def normalize(tokens):
 
 # Step 3: Stop word removal
 
-# Fixes for corrupted entries in the supplied stopwords.txt
 _KNOWN_STOPWORD_FIXES = {
     "herse\u201d": "herself",
     "himse\u201d": "himself",

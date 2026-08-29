@@ -25,25 +25,22 @@ def parse_processed_file(path):
     into a list of (doc_id, [tokens]) tuples.
     """
     docs = []
-    doc_id = None
     with open(path, encoding="utf-8") as f:
-        lines = f.read().splitlines()
-
-    i = 0
-    while i < len(lines):
-        line = lines[i]
-        if line.startswith(".I "):
-            doc_id = int(line.split()[1])
-            i += 1
-            if i < len(lines) and lines[i] == ".S":
-                i += 1
-                tokens = lines[i].split() if i < len(lines) else []
-                docs.append((doc_id, tokens))
-                i += 1
-            else:
-                docs.append((doc_id, []))
-        else:
-            i += 1
+        iterator = iter(f)
+        for line in iterator:
+            line = line.strip()
+            if line.startswith(".I "):
+                doc_id = int(line.split()[1])
+                try:
+                    next_line = next(iterator).strip()
+                    if next_line == ".S":
+                        tok_line = next(iterator).strip()
+                        tokens = tok_line.split() if tok_line else []
+                        docs.append((doc_id, tokens))
+                    else:
+                        docs.append((doc_id, []))
+                except StopIteration:
+                    docs.append((doc_id, []))
     return docs
 
 
