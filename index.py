@@ -1,8 +1,7 @@
 """
 index.py
 
-Builds an inverted index from the preprocessed collection
-(<GROUP>_processed.all) and writes it to <GROUP>_cran.index.
+Builds an inverted index from the preprocessed collection and writes it to IR67_cran.index.
 
 Index file format:
     line 1:  <vocab_size>, <max_docid>
@@ -22,7 +21,7 @@ import config
 
 def parse_processed_file(path):
     """
-    Parse a <GROUP>_processed.all file (as produced by preprocess.py)
+    Parse IR67_processed.all file (as produced by preprocess.py)
     into a list of (doc_id, [tokens]) tuples.
     """
     docs = []
@@ -50,10 +49,7 @@ def parse_processed_file(path):
 
 def build_index(docs):
     """
-    Build an inverted index: term -> sorted list of unique docids in
-    which the term occurs. A postings list records a docid at most once
-    even if the term occurs multiple times in that document, since this
-    index only needs to support Boolean (presence/absence) retrieval.
+    Build an inverted index: term -> sorted list of unique docids.
 
     Returns (index_dict, max_docid).
     """

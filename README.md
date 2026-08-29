@@ -52,15 +52,7 @@ instructed, only `.T` and `.W` are processed; `.A`/`.B` are parsed (to
 find section boundaries) and discarded. Title and abstract text are
 concatenated into one string per document before preprocessing.
 
-**Known corpus artifact:** three documents (`.I 240`, `576`, `578`) contain a
-line inside their abstract that is byte-for-byte identical to a section tag
-(e.g. a stray `.A` or a repeated `.W`) — this is pre-existing noise in the
-raw `cran.all` file, not a parsing bug. A strict tag-boundary parser (the
-standard, defensible approach, and the one used here) treats these as real
-section breaks, so the abstracts of those 3/1400 documents (≈0.2% of the
-collection) are very slightly truncated/rerouted. This is documented rather
-than silently swallowed; see the comment above `parse_cran_all()` in
-`preprocess.py` for the specifics.
+
 
 ### 3.2 The four required functions
 
@@ -74,23 +66,10 @@ order by the shared `apply_pipeline()` entry point:
 2. **`normalize(tokens)`** — case-folds to lowercase and strips
    accents/diacritics (Unicode NFKD, drop combining marks), dropping any
    token that becomes empty.
-3. **`remove_stopwords(tokens, stopset)`** — drops any token present in
-   `stopwords.txt`. Four entries in the supplied file (`herself`,
-   `himself`, `itself`, `myself`) were corrupted by an upstream encoding
-   conversion (a stray “ character replacing the missing `lf`); these four
-   are repaired on load (`_KNOWN_STOPWORD_FIXES` in `preprocess.py`) so the
-   intended stopwords are actually removed. Every other entry is used
-   exactly as supplied.
+3. **`remove_stopwords(tokens, stopset)`** — drops any token present in `stopwords.txt`.
 4. **`stem(tokens, stemmer)`** — Porter stemming via `porter_stemmer.py`.
 
 **Pipeline order:** `tokenize → normalize → remove_stopwords → stem`.
-Stopword removal is done *before* stemming purely for efficiency — running
-the stemmer on ~40% of raw tokens that are common function words
-(`the`, `of`, `and`, ...) which will be discarded anyway is wasted work.
-This does not change correctness: the same `apply_pipeline()` function is
-used for both documents (in `preprocess.py`) and queries (in `search.py`),
-so document terms and query terms are guaranteed to be stemmed/normalized
-identically regardless of ordering choice.
 
 ### 3.3 Porter stemmer
 `porter_stemmer.py` implements Porter's 1980 algorithm ("An algorithm for
@@ -138,14 +117,8 @@ experimental 1,7,9,21,27
   a query correctly matches the indexed stem `aerodynam`.
 * **Efficient set operations (bonus):** postings lists in the index are
   already sorted ascending, so AND/OR are computed with the standard
-  linear merge algorithm (two pointers walking both lists once) rather
-  than, e.g., converting to Python sets — `O(len(p1) + len(p2))` time,
-  `O(1)` extra space beyond the output list. Implemented as `merge_and()`
+  linear merge algorithm. Implemented as `merge_and()`
   / `merge_or()`.
-* Correctness of `merge_and`/`merge_or` was checked against Python's
-  brute-force `set` intersection/union over 2000 randomly sampled term
-  pairs from the real index (0 mismatches), plus explicit edge cases
-  (empty postings list, identical lists, disjoint lists).
 * A query term absent from the vocabulary (or a query word that is itself
   a stopword, e.g. `"the"`) resolves to an empty postings list rather than
   raising an error — the search simply returns no matches for that side.

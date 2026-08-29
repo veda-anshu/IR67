@@ -14,19 +14,12 @@ over every document's Title + Abstract in cran.all.
 
 Pipeline order: tokenize -> normalize -> remove_stopwords -> stem
 
-We deliberately remove stopwords *before* stemming rather than after.
-Functionally either order is valid (stopword removal is order-independent
-of stemming as long as the SAME order is used consistently for documents
-and for queries at search time, which this project does via
-apply_pipeline() being the single shared entry point). We remove stopwords
-first purely for efficiency: it is wasteful to run the stemmer on tokens
-("the", "of", "and", ...) that are going to be discarded anyway, and on
-1400 abstracts this measurably cuts down stemmer calls.
+
 
 Usage:
     python3 preprocess.py
 Reads config.CRAN_ALL_PATH and config.STOPWORDS_PATH, writes
-config.PROCESSED_PATH (<GROUP>_processed.all).
+config.PROCESSED_PATH (IR67_processed.all).
 """
 
 import re
@@ -84,13 +77,7 @@ def normalize(tokens):
 # Step 3: Stop word removal
 # ---------------------------------------------------------------------
 
-# The supplied stopwords.txt has four entries corrupted by a legacy
-# encoding conversion somewhere upstream (a right curly quote "\u201d"
-# in place of the missing "lf"): "herse", "himse", "itse", "myse"
-# followed by that stray quote character, which should read "herself",
-# "himself", "itself", "myself". We repair just those four known cases
-# on load so the intended stopwords are actually removed; every other
-# entry is used exactly as given.
+# Fixes for corrupted entries in the supplied stopwords.txt
 _KNOWN_STOPWORD_FIXES = {
     "herse\u201d": "herself",
     "himse\u201d": "himself",
@@ -155,16 +142,6 @@ def parse_cran_all(path):
     ".T" (title), ".A" (author), ".B" (bibliographic info) and ".W"
     (abstract) sections. Per the assignment, only .T and .W are used;
     .A and .B are parsed (to know where they end) but discarded.
-
-    Known data quirk: three documents in this collection (.I 240, 576,
-    578) contain lines that are byte-for-byte identical to a section tag
-    (e.g. a literal ".A" or a second ".W") in the middle of their
-    abstract text. A strict tag-boundary parser (the approach used here,
-    and the standard approach for this file) will treat those as real
-    section breaks, which very slightly truncates/reroutes the abstract
-    text for those 3 of 1400 documents (~0.2%). This is a pre-existing
-    artifact of the raw corpus file, not a parsing bug; it is called out
-    here and in the writeup rather than silently ignored.
     """
     docs = []
     doc_id = None

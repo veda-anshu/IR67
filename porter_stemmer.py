@@ -1,19 +1,4 @@
 """
-porter_stemmer.py
-
-Standalone implementation of the Porter Stemming Algorithm.
-
-    Porter, M. "An algorithm for suffix stripping." Program 14.3 (1980): 130-137.
-    https://www.tartarus.org/~martin/PorterStemmer/
-
-The assignment explicitly permits using a Porter stemmer "from any source".
-This module contains the well-known, widely validated implementation of the
-algorithm (the same one shipped with NLTK), lifted out into a dependency-free
-file so the project has zero external package requirements at submission /
-grading time.
-"""
-
-"""
 Porter Stemmer
 
 This is the Porter stemming algorithm. It follows the algorithm

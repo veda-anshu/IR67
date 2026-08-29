@@ -7,18 +7,10 @@ two-term queries the assignment asks for:
     <term1> AND <term2>
     <term1> OR  <term2>
 
-The query is run through the *exact same* tokenize -> normalize ->
-remove_stopwords -> stem pipeline used on the documents (imported
-directly from preprocess.py) so that, e.g., "Aerodynamics" in a query
-matches "aerodynamic" in the index.
+The query is run through the same preprocessing pipeline as the documents.
 
 Postings lists in the index file are already sorted ascending, so AND
-(intersection) and OR (union) are computed with the standard linear
-merge-based algorithm (Manning/Raghavan/Schütze, "Introduction to
-Information Retrieval", ch. 1) rather than converting to Python sets:
-each is a single left-to-right pass over both lists, O(len(p1)+len(p2))
-comparisons, using no more memory than the two input lists plus the
-output.
+and OR are computed with the standard linear merge-based algorithm.
 
 Usage:
     Single query, result written to config.RESULTS_PATH:
@@ -135,8 +127,6 @@ def run_query(raw_query, index, stopset, stemmer):
 
     t1_list = apply_pipeline(term1_raw, stopset, stemmer)
     t2_list = apply_pipeline(term2_raw, stopset, stemmer)
-    # A query word may itself be a stopword or stem to nothing (rare, but
-    # handle gracefully rather than crashing on IndexError).
     t1 = t1_list[0] if t1_list else ""
     t2 = t2_list[0] if t2_list else ""
 
