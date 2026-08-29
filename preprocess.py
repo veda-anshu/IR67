@@ -14,8 +14,6 @@ over every document's Title + Abstract in cran.all.
 
 Pipeline order: tokenize -> normalize -> remove_stopwords -> stem
 
-
-
 Usage:
     python3 preprocess.py
 Reads config.CRAN_ALL_PATH and config.STOPWORDS_PATH, writes
@@ -29,11 +27,9 @@ import unicodedata
 from porter_stemmer import PorterStemmer
 import config
 
-# ---------------------------------------------------------------------
 # Step 1: Tokenization
-# ---------------------------------------------------------------------
-_TOKEN_RE = re.compile(r"[A-Za-z0-9]+")
 
+_TOKEN_RE = re.compile(r"[A-Za-z0-9]+")
 
 def tokenize(text):
     """
@@ -47,10 +43,8 @@ def tokenize(text):
     """
     return _TOKEN_RE.findall(text)
 
-
-# ---------------------------------------------------------------------
 # Step 2: Normalization
-# ---------------------------------------------------------------------
+
 def normalize(tokens):
     """
     Normalize a list of raw tokens:
@@ -72,10 +66,7 @@ def normalize(tokens):
             out.append(t)
     return out
 
-
-# ---------------------------------------------------------------------
 # Step 3: Stop word removal
-# ---------------------------------------------------------------------
 
 # Fixes for corrupted entries in the supplied stopwords.txt
 _KNOWN_STOPWORD_FIXES = {
@@ -84,7 +75,6 @@ _KNOWN_STOPWORD_FIXES = {
     "itse\u201d": "itself",
     "myse\u201d": "myself",
 }
-
 
 def load_stopwords(path):
     """Load a stopword list (one word per line) into a set."""
@@ -98,23 +88,18 @@ def load_stopwords(path):
             stopset.add(w.casefold())
     return stopset
 
-
 def remove_stopwords(tokens, stopset):
     """Return tokens with any word present in stopset removed."""
     return [t for t in tokens if t not in stopset]
 
-
-# ---------------------------------------------------------------------
 # Step 4: Stemming
-# ---------------------------------------------------------------------
+
 def stem(tokens, stemmer):
     """Apply the Porter stemmer to every token."""
     return [stemmer.stem(t) for t in tokens]
 
-
-# ---------------------------------------------------------------------
 # Pipeline integration
-# ---------------------------------------------------------------------
+
 def apply_pipeline(text, stopset, stemmer):
     """
     Run the full preprocessing pipeline on a raw text string and return
@@ -129,10 +114,8 @@ def apply_pipeline(text, stopset, stemmer):
     tokens = stem(tokens, stemmer)
     return tokens
 
+# cran.all.1400 parsing
 
-# ---------------------------------------------------------------------
-# cran.all parsing
-# ---------------------------------------------------------------------
 def parse_cran_all(path):
     """
     Parse the SMART/Cranfield-format cran.all file into a list of
@@ -170,10 +153,6 @@ def parse_cran_all(path):
 
     return docs
 
-
-# ---------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------
 def main():
     stopset = load_stopwords(config.STOPWORDS_PATH)
     stemmer = PorterStemmer()

@@ -16,4 +16,4 @@ output/
 .vscode/
 .idea/
 
-*.txt
+queries.txt
