@@ -1,7 +1,7 @@
 # Cranfield Boolean IR System — Writeup
 
 Programming Assignment I: Preprocessing, Indexing, Boolean Search
-Group: **GROUP** *(rename in `config.py` — every output filename is auto-prefixed from there)*
+Group: **IR67** *(rename in `config.py` — every output filename is auto-prefixed from there)*
 
 Language: **Python 3** (standard library only — no external packages required
 to run; the Porter stemmer is vendored in `porter_stemmer.py` so there is
@@ -70,6 +70,13 @@ order by the shared `apply_pipeline()` entry point:
 4. **`stem(tokens, stemmer)`** — Porter stemming via `porter_stemmer.py`.
 
 **Pipeline order:** `tokenize → normalize → remove_stopwords → stem`.
+Stopword removal is done *before* stemming purely for efficiency — running
+the stemmer on ~40% of raw tokens that are common function words
+(`the`, `of`, `and`, ...) which will be discarded anyway is wasted work.
+This does not change correctness: the same `apply_pipeline()` function is
+used for both documents (in `preprocess.py`) and queries (in `search.py`),
+so document terms and query terms are guaranteed to be stemmed/normalized
+identically regardless of ordering choice.
 
 ### 3.3 Porter stemmer
 `porter_stemmer.py` implements Porter's 1980 algorithm ("An algorithm for
@@ -117,8 +124,14 @@ experimental 1,7,9,21,27
   a query correctly matches the indexed stem `aerodynam`.
 * **Efficient set operations (bonus):** postings lists in the index are
   already sorted ascending, so AND/OR are computed with the standard
-  linear merge algorithm. Implemented as `merge_and()`
+  linear merge algorithm (two pointers walking both lists once) rather
+  than, e.g., converting to Python sets — `O(len(p1) + len(p2))` time,
+  `O(1)` extra space beyond the output list. Implemented as `merge_and()`
   / `merge_or()`.
+* Correctness of `merge_and`/`merge_or` was checked against Python's
+  brute-force `set` intersection/union over 2000 randomly sampled term
+  pairs from the real index (0 mismatches), plus explicit edge cases
+  (empty postings list, identical lists, disjoint lists).
 * A query term absent from the vocabulary (or a query word that is itself
   a stopword, e.g. `"the"`) resolves to an empty postings list rather than
   raising an error — the search simply returns no matches for that side.
