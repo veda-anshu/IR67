@@ -1,8 +1,8 @@
 """
-search.py
+IR67_search.py
 
-Boolean retrieval over the index built by index.py. Supports exactly the
-two-term queries the assignment asks for:
+Boolean retrieval over the index built by IR67_index.py. Supports exactly
+the two-term queries the assignment asks for:
 
     <term1> AND <term2>
     <term1> OR  <term2>
@@ -14,14 +14,14 @@ and OR are computed with the standard linear merge-based algorithm.
 
 Usage:
     Single query, result written to config.RESULTS_PATH:
-        python3 search.py "aerodynamic AND experimental"
+        python3 IR67_search.py "aerodynamic AND experimental"
 
     Single query, custom output file:
-        python3 search.py "flow OR pressure" -o myresults.txt
+        python3 IR67_search.py "flow OR pressure" -o myresults.txt
 
     Batch mode - one query per line in a file, all results appended to
     one output file:
-        python3 search.py --batch queries.txt -o results.txt
+        python3 IR67_search.py --batch queries.txt -o results.txt
 """
 
 import argparse

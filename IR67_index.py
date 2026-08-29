@@ -1,5 +1,5 @@
 """
-index.py
+IR67_index.py
 
 Builds an inverted index from the preprocessed collection and writes it to IR67_cran.index.
 
@@ -9,7 +9,7 @@ Index file format:
     ... one line per term, terms sorted lexicographically ...
 
 Usage:
-    python3 index.py
+    python3 IR67_index.py
 Reads config.PROCESSED_PATH, writes config.INDEX_PATH.
 """
 

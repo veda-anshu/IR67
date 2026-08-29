@@ -15,8 +15,8 @@ nothing to `pip install`).
 |---|---|
 | `IR67_config.py` | Group name + shared input/output paths. Edit `GROUP_NAME` here. |
 | `IR67_porter_stemmer.py` | Standalone Porter (1980) stemming algorithm implementation. |
-| `IR67_preprocess.py` | Tokenization, normalization, stopword removal, stemming; writes `GROUP_processed.all`. |
-| `IR67_index.py` | Builds the inverted index; writes `GROUP_cran.index`. |
+| `IR67_preprocess.py` | Tokenization, normalization, stopword removal, stemming; writes `IR67_processed.all`. |
+| `IR67_index.py` | Builds the inverted index; writes `IR67_cran.index`. |
 | `IR67_search.py` | Two-term Boolean AND/OR search over the index. |
 | `queries.txt` | Sample demo queries (batch-mode input for `IR67_search.py`). |
 | `data/cran.all`, `data/stopwords.txt` | Input corpus and stopword list (as supplied). |
@@ -27,16 +27,16 @@ nothing to `pip install`).
 ```bash
 # 1) edit IR67_config.py: set GROUP_NAME = "<your actual group name>"
 
-# 2) preprocessing -> output/GROUP_processed.all
+# 2) preprocessing -> output/IR67_processed.all
 python3 IR67_preprocess.py
 
-# 3) indexing -> output/GROUP_cran.index
+# 3) indexing -> output/IR67_cran.index
 python3 IR67_index.py
 
 # 4) Boolean search
 python3 IR67_search.py "aerodynamic AND experimental"          # single query
 python3 IR67_search.py "flow OR pressure" -o results.txt        # custom output file
-python3 IR67_search.py --batch queries.txt -o output/GROUP_results.txt   # batch mode
+python3 IR67_search.py --batch queries.txt -o output/IR67_results.txt   # batch mode
 ```
 
 Each script only depends on the previous stage's output file plus
@@ -52,7 +52,15 @@ instructed, only `.T` and `.W` are processed; `.A`/`.B` are parsed (to
 find section boundaries) and discarded. Title and abstract text are
 concatenated into one string per document before preprocessing.
 
-
+**Known corpus artifact:** three documents (`.I 240`, `576`, `578`) contain a
+line inside their abstract that is byte-for-byte identical to a section tag
+(e.g. a stray `.A` or a repeated `.W`) — this is pre-existing noise in the
+raw `cran.all` file, not a parsing bug. A strict tag-boundary parser (the
+standard, defensible approach, and the one used here) treats these as real
+section breaks, so the abstracts of those 3/1400 documents (≈0.2% of the
+collection) are very slightly truncated/rerouted. This is documented rather
+than silently swallowed; see the comment above `parse_cran_all()` in
+`IR67_preprocess.py` for the specifics.
 
 ### 3.2 The four required functions
 
@@ -66,7 +74,13 @@ order by the shared `apply_pipeline()` entry point:
 2. **`normalize(tokens)`** — case-folds to lowercase and strips
    accents/diacritics (Unicode NFKD, drop combining marks), dropping any
    token that becomes empty.
-3. **`remove_stopwords(tokens, stopset)`** — drops any token present in `stopwords.txt`.
+3. **`remove_stopwords(tokens, stopset)`** — drops any token present in
+   `stopwords.txt`. Four entries in the supplied file (`herself`,
+   `himself`, `itself`, `myself`) were corrupted by an upstream encoding
+   conversion (a stray " character replacing the missing `lf`); these four
+   are repaired on load (`_KNOWN_STOPWORD_FIXES` in `IR67_preprocess.py`) so
+   the intended stopwords are actually removed. Every other entry is used
+   exactly as supplied.
 4. **`stem(tokens, stemmer)`** — Porter stemming via `IR67_porter_stemmer.py`.
 
 **Pipeline order:** `tokenize → normalize → remove_stopwords → stem`.
@@ -90,7 +104,7 @@ pipeline — see the validation script output below.
 75/75 canonical Porter test vectors passed (ORIGINAL_ALGORITHM mode)
 ```
 
-### 3.4 Output format (`GROUP_processed.all`)
+### 3.4 Output format (`IR67_processed.all`)
 ```
 .I 1
 .S
@@ -154,7 +168,7 @@ already runs end-to-end correctly on these representative queries:
 | wing AND flow | wing AND flow | 121 |
 | turbulent OR laminar | turbul OR laminar | 304 |
 
-Full docid lists for each are in `output/GROUP_results.txt`.
+Full docid lists for each are in `output/IR67_results.txt`.
 
 ## 7. Corpus statistics
 
