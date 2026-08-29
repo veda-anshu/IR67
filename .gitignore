@@ -1,0 +1,19 @@
+# Python byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Generated output from the IR pipeline
+output/
+*_processed.all
+*_cran.index
+*_results.txt
+
+# OS generated files
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+
+*.txt
