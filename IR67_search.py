@@ -1,29 +1,3 @@
-"""
-IR67_search.py
-
-Boolean retrieval over the index built by IR67_index.py. Supports exactly
-the two-term queries the assignment asks for:
-
-    <term1> AND <term2>
-    <term1> OR  <term2>
-
-The query is run through the same preprocessing pipeline as the documents.
-
-Postings lists in the index file are already sorted ascending, so AND
-and OR are computed with the standard linear merge-based algorithm.
-
-Usage:
-    Single query, result written to config.RESULTS_PATH:
-        python3 IR67_search.py "aerodynamic AND experimental"
-
-    Single query, custom output file:
-        python3 IR67_search.py "flow OR pressure" -o myresults.txt
-
-    Batch mode - one query per line in a file, all results appended to
-    one output file:
-        python3 IR67_search.py --batch queries.txt -o results.txt
-"""
-
 import argparse
 import sys
 
@@ -31,13 +5,7 @@ import IR67_config as config
 from IR67_preprocess import apply_pipeline, load_stopwords
 from IR67_porter_stemmer import PorterStemmer
 
-# Index loading
 def load_index(path):
-    """
-    Load a <GROUP>_cran.index file into memory.
-    Returns (index_dict, vocab_size, max_docid) where index_dict maps
-    term -> sorted list of docids.
-    """
     index = {}
     with open(path, encoding="utf-8") as f:
         header = f.readline().strip()
@@ -47,14 +15,11 @@ def load_index(path):
             if not line:
                 continue
             term, postings_str = line.split(" ", 1)
-            postings = [int(d) for d in postings_str.split(",") if d]
-            index[term] = postings
+            index[term] = [int(d) for d in postings_str.split(",") if d]
     return index, vocab_size, max_docid
 
-
-# Merge-based set operations on sorted postings lists -- O(len(p1)+len(p2))
 def merge_and(p1, p2):
-    """Sorted-list intersection via linear merge (two-pointer walk)."""
+    # Two-pointer walk for O(N+M) list intersection
     result = []
     i = j = 0
     while i < len(p1) and j < len(p2):
@@ -68,9 +33,8 @@ def merge_and(p1, p2):
             j += 1
     return result
 
-
 def merge_or(p1, p2):
-    """Sorted-list union via linear merge (two-pointer walk)."""
+    # Two-pointer walk for O(N+M) list union
     result = []
     i = j = 0
     while i < len(p1) and j < len(p2):
@@ -88,42 +52,27 @@ def merge_or(p1, p2):
     result.extend(p2[j:])
     return result
 
-# Query parsing + execution
 class QueryError(ValueError):
     pass
 
 def parse_query(raw_query):
-    """
-    Parse "term1 AND term2" / "term1 OR term2" (case-insensitive
-    connective) into (term1_raw, connective, term2_raw).
-    """
     parts = raw_query.strip().split()
     if len(parts) != 3:
-        raise QueryError(
-            f"Expected exactly 'term1 AND|OR term2', got: {raw_query!r}"
-        )
+        raise QueryError(f"Expected 'term1 AND|OR term2', got: {raw_query!r}")
     term1, conn, term2 = parts
-    conn_upper = conn.upper()
-    if conn_upper not in ("AND", "OR"):
+    conn = conn.upper()
+    if conn not in ("AND", "OR"):
         raise QueryError(f"Connective must be AND or OR, got: {conn!r}")
-    return term1, conn_upper, term2
-
+    return term1, conn, term2
 
 def run_query(raw_query, index, stopset, stemmer):
-    """
-    Execute a single two-term Boolean query against the index.
-    Returns (processed_term1, connective, processed_term2, sorted_docid_list).
-    """
     term1_raw, conn, term2_raw = parse_query(raw_query)
 
     t1_list = apply_pipeline(term1_raw, stopset, stemmer)
     t2_list = apply_pipeline(term2_raw, stopset, stemmer)
 
     if len(t1_list) > 1 or len(t2_list) > 1:
-        raise QueryError(
-            "A single query term tokenized into multiple words (e.g. it contained a hyphen). "
-            "Please use single words."
-        )
+        raise QueryError("Query terms must tokenize into single words (no hyphens).")
 
     t1 = t1_list[0] if t1_list else ""
     t2 = t2_list[0] if t2_list else ""
@@ -134,35 +83,25 @@ def run_query(raw_query, index, stopset, stemmer):
     docids = merge_and(p1, p2) if conn == "AND" else merge_or(p1, p2)
     return t1, conn, t2, docids
 
-# Main / CLI
-
-def format_result_line(raw_query, t1, conn, t2, docids):
-    ids_str = ",".join(str(d) for d in docids) if docids else "(none)"
-    return (
-        f"QUERY: {raw_query}\n"
-        f"  processed: {t1} {conn} {t2}\n"
-        f"  matches ({len(docids)}): {ids_str}\n"
-    )
-
+def format_result_line(docids):
+    # Requirements specify we just write a file containing the docid list
+    return ",".join(str(d) for d in docids) + "\n" if docids else "\n"
 
 def main():
-    ap = argparse.ArgumentParser(description="Boolean search over the Cranfield index.")
-    ap.add_argument("query", nargs="?", help="e.g. \"aerodynamic AND experimental\"")
-    ap.add_argument("--batch", metavar="FILE", help="file with one query per line")
-    ap.add_argument("-o", "--output", metavar="FILE", default=config.RESULTS_PATH,
-                     help=f"output file (default: {config.RESULTS_PATH})")
-    ap.add_argument("--index", metavar="FILE", default=config.INDEX_PATH,
-                     help=f"index file to search (default: {config.INDEX_PATH})")
-    args = ap.parse_args()
+    parser = argparse.ArgumentParser(description="Boolean search for IR67 index.")
+    parser.add_argument("query", nargs="?", help="e.g. 'aerodynamic AND experimental'")
+    parser.add_argument("--batch", metavar="FILE", help="batch file, one query per line")
+    parser.add_argument("-o", "--output", metavar="FILE", default=config.RESULTS_PATH)
+    parser.add_argument("--index", metavar="FILE", default=config.INDEX_PATH)
+    args = parser.parse_args()
 
     if not args.query and not args.batch:
-        ap.error("provide a query string or --batch FILE")
+        parser.error("provide a query string or --batch FILE")
 
     index, vocab_size, max_docid = load_index(args.index)
     stopset = load_stopwords(config.STOPWORDS_PATH)
     stemmer = PorterStemmer()
 
-    queries = []
     if args.batch:
         with open(args.batch, encoding="utf-8") as f:
             queries = [line.strip() for line in f if line.strip()]
@@ -172,18 +111,18 @@ def main():
     lines = []
     for q in queries:
         try:
-            t1, conn, t2, docids = run_query(q, index, stopset, stemmer)
-            lines.append(format_result_line(q, t1, conn, t2, docids))
-            print(format_result_line(q, t1, conn, t2, docids), end="")
+            _, _, _, docids = run_query(q, index, stopset, stemmer)
+            result = format_result_line(docids)
+            lines.append(result)
+            print(result, end="")
         except QueryError as e:
-            msg = f"QUERY: {q}\n  ERROR: {e}\n"
-            lines.append(msg)
-            print(msg, end="")
+            err_msg = f"QUERY ERROR: {e}\n"
+            lines.append(err_msg)
+            print(err_msg, end="")
 
-    with open(args.output, "w", encoding="utf-8") as out:
-        out.writelines(lines)
+    with open(args.output, "w", encoding="utf-8") as f:
+        f.writelines(lines)
     print(f"Results written to {args.output}")
 
-
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

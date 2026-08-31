@@ -1,4 +1,4 @@
-# Cranfield Boolean IR System
+# Cranfield Boolean IR System — Writeup
 
 **Programming Assignment I: Preprocessing, Indexing, Boolean Search**  
 **Group:** IR67 *(Note: You can easily rename the group in `IR67_config.py`, and all output filenames will update automatically).*
